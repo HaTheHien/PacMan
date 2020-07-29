@@ -1,5 +1,6 @@
 import pygame
 import time
+import random
 square = 60
 pac = [0,0]
 graph = []
@@ -14,6 +15,7 @@ no_color = (255,255,255)
 dark = (0,0,0)
 score = [0]
 height,width = [0],[0]
+ghost_array = []  #IndexColor,(x_now,y_now),(x_start,y_start),IndexAlgorithm
 pacman1 = pygame.image.load('pacman1.png')
 pacman2 = pygame.image.load('pacman2.png')
 pacman3 = pygame.image.load('pacman3.png')
@@ -23,7 +25,6 @@ pacman = [pacman1]
 pygame.init()
 screen = pygame.display.set_mode((500,500))
 pygame.display.set_caption('PACMAN')
-
 
 def input_level():
     click_AI = False
@@ -44,7 +45,7 @@ def input_level():
                 if 10 <= mouse[0] <= 10 + 50 and 100 <= mouse[1] <= 100 +40:
                     click_AI = True
                 if 10 <= mouse[0] <= 10 + 140 and 300 <= mouse[1] <= 300 +40:
-                    return (0,0)
+                    return (0,4)
                 if click_AI == True:
                     if 80 <= mouse[0] <= 80 + 70 and 100 <= mouse[1] <= 100 +40:
                         return (1,1)
@@ -96,13 +97,19 @@ def input_matrix():
     temp = list(map(int,file.readline().split()))
     height[0],width[0] = temp[0],temp[1]
     for i in range(height[0]):
-        row = list(map(int,file.readline().split()))
+        temp = list(map(int,file.readline().split()))
+        row = []
+        for i in temp:
+            temp1 = []
+            temp1.append(i)
+            row.append(temp1)
         graph.append(row)
-    screen = pygame.display.set_mode((width[0] * square,(height[0] + 1) * square))
+    screen = pygame.display.set_mode((width[0] * square,(height[0] + 2) * square))
     screen.fill(dark)
     pygame.display.flip()
 
 def Human():
+    ff = False
     x_ = pac[0]
     y_ = pac[1]
     pygame.event.clear()
@@ -124,12 +131,42 @@ def Human():
                     if event.key == 100 or event.key == pygame.K_RIGHT:
                         x_ = x_ + 1
                         pacman[0] = pacman1
-                    if event.key == ord ( "e" ):
+                    if event.key == pygame.K_ESCAPE:
                         run[0] = 0
-                if x_ != pac[0] or y_ != pac[1]:
-                    return x_,y_
+                        ff = True
+                if x_ != pac[0] or y_ != pac[1] or ff == True:
+                    return x_,y_,ff
     
-        
+def AI(level):
+    ff = False
+    x_ = pac[0]
+    y_ = pac[1]
+    pygame.event.clear()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit(0)
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == 97 or event.key == pygame.K_LEFT:
+                        x_ = x_ - 1
+                        pacman[0] = pacman3
+                    if event.key == 119 or event.key == pygame.K_UP:
+                        y_ = y_ - 1
+                        pacman[0] = pacman2
+                    if event.key == 115 or event.key == pygame.K_DOWN:
+                        y_ = y_ + 1
+                        pacman[0] = pacman4
+                    if event.key == 100 or event.key == pygame.K_RIGHT:
+                        x_ = x_ + 1
+                        pacman[0] = pacman1
+                    if event.key == pygame.K_ESCAPE:
+                        run[0] = 0
+                        ff = True
+                if x_ != pac[0] or y_ != pac[1] or ff == True:
+                    return x_,y_,ff
+    return 0,0,True
+    
 def canMove(x,y):
     if pac[0] == x and pac[1] == y:
         return False
@@ -137,23 +174,55 @@ def canMove(x,y):
         return False
     if y >= height[0] or y < 0:
         return False
-    if graph[y][x] == 1:
+    if graph[y][x][0] == 1:
         return False
     return True
 
-def renderBoard():
+def Ghost_play(level):
+    if level <= 2:
+        return
+    if level == 3:
+        for i in range(0,len(ghost_array)):
+            x_now,y_now = ghost_array[i][1][0],ghost_array[i][1][1]
+            x_start,y_start = ghost_array[i][2][0],ghost_array[i][2][1]
+            if x_now == x_start and y_now == y_start:
+                list_ = [(x_start - 1,y_start),(x_start + 1,y_start),(x_start,y_start - 1),(x_start,y_start + 1)]
+                flag = False
+                while len(list_) > 0:
+                    temp = list_.pop(random.randint(0,len(list_)-1))
+                    x_now = temp[0]
+                    y_now = temp[1]
+                    flag = canMove(x_now,y_now)
+                    if flag == True:
+                        break
+                if flag == False:
+                    continue
+                graph[y_start][x_start].remove(i+3)
+                graph[y_now][x_now].append(i+3)
+                ghost_array[i][1] = (x_now,y_now)
+            else:
+                graph[y_now][x_now].remove(i+3)
+                graph[y_start][x_start].append(i+3)
+                ghost_array[i][1] = (ghost_array[i][2][0],ghost_array[i][2][1])
+    return
+def renderBoard(Ghost = True):
     screen.fill((0,0,0))
-    ghost = pygame.image.load('ghost.png')
+    ghost1 = pygame.image.load('ghost.png')
+    ghost2 = pygame.image.load('ghost1.png')
+    ghost3 = pygame.image.load('ghost2.png')
+    ghost4 = pygame.image.load('ghost3.png')
+    ghost = [ghost1,ghost2,ghost3,ghost4]
     wall = pygame.image.load('wall.png')
     food = pygame.image.load('food.png')
     for i in range(len(graph)):
         for j in range(len(graph[0])):
-            if graph[i][j] == 1:
+            if graph[i][j][0] == 1:
                 screen.blit(wall, (j* square,i * square))
-            if graph[i][j] == 2:
+            if graph[i][j][0] == 2:
                 screen.blit(food, (j* square,i * square))
-            if graph[i][j] == 3:
-                screen.blit(ghost, (j* square,i * square))
+            if len(graph[i][j]) > 1 and Ghost == True:
+                ghost_node = ghost_array[graph[i][j][-1] - 3]
+                screen.blit(ghost[ghost_node[0]], (j* square,i * square))
     screen.blit(pacman[0], (pac[0] * square,pac[1] * square))
     pygame.draw.line(screen,orange,(0, height[0]  * square),(width[0] * square, height[0] * square),width=2)
     font1 = pygame.font.SysFont("arial", 36)
@@ -163,34 +232,75 @@ def renderBoard():
     screen.blit(text1, textRect1.center)
     pygame.display.update()
 
-def play():
+def play(choose):
+    level = choose[1]
+    number_food = 0
+    if level > 1:
+        for i in range(len(graph)):
+            for j in range(len(graph[0])):
+                if graph[i][j][0] == 2:
+                    number_food += 1
+                if graph[i][j][0] == 3:
+                    index = len(ghost_array) + 3
+                    graph[i][j][0] = 0
+                    graph[i][j].append(index)
+                    ghost_node = [random.randint(0, 3),(j , i) ,(j , i),index,0]
+                    ghost_array.append(ghost_node)
     while run[0] == 1:
+        if choose[0] == 1 and level == 1:
+            renderBoard(Ghost = False)
+        else:
+            renderBoard()
         x = pac[0]
         y = pac[1]
         flag = False
-        while flag == False:
-            x,y = Human()
+        ff = False
+        while flag == False and ff == False:
+            if choose[0] == 0:
+                x,y,ff = Human()
+            else:
+                x,y,ff = AI(level)
             flag = canMove(x,y)
+        if ff == True:
+            font = pygame.font.SysFont("arial", 36)
+            text = font.render('SURRENDER', True, green, blue)
+            textRect = text.get_rect()
+            textRect.center = (0, (height[0] + 1) * square + 3)
+            screen.blit(text, textRect.center)
+            pygame.display.update()
+            time.sleep(1)
+            exit(0)
         pac[0],pac[1] = x,y
         score[0] -=1
-        if graph[pac[1]][pac[0]] == 2:
+        #ghost play
+        Ghost_play(level)
+        if graph[pac[1]][pac[0]][0] == 2:
             score[0] += 20
-            graph[pac[1]][pac[0]] = 0
-        if graph[pac[1]][pac[0]] == 3:
+            graph[pac[1]][pac[0]][0] = 0
+            number_food -= 1
+            if number_food == 0:
+                renderBoard()
+                font = pygame.font.SysFont("arial", 36)
+                text = font.render('YOU WIN', True, green, blue)
+                textRect = text.get_rect()
+                textRect.center = (0, (height[0] + 1) * square + 3)
+                screen.blit(text, textRect.center)
+                pygame.display.update()
+                time.sleep(2)
+                exit(0)
+        if graph[pac[1]][pac[0]][0] == 3:
             renderBoard()
             font = pygame.font.SysFont("arial", 36)
             text = font.render('GAME OVER', True, green, blue)
             textRect = text.get_rect()
-            textRect.center = (0, height[0] * square + 3)
+            textRect.center = (0, (height[0] + 1) * square + 3)
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(2)
             exit(0)
-        renderBoard()
 
 if __name__ == '__main__':
-    input_level()
+    choose = input_level()
     input_matrix()
-    renderBoard()
-    play()
+    play(choose)
 
