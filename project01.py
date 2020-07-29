@@ -168,8 +168,6 @@ def AI(level):
     return 0,0,True
     
 def canMove(x,y):
-    if pac[0] == x and pac[1] == y:
-        return False
     if x >= width[0] or x < 0:
         return False
     if y >= height[0] or y < 0:
@@ -272,6 +270,16 @@ def play(choose):
             exit(0)
         pac[0],pac[1] = x,y
         score[0] -=1
+        if graph[pac[1]][pac[0]][-1] >= 3:
+            renderBoard()
+            font = pygame.font.SysFont("arial", 36)
+            text = font.render('GAME OVER', True, green, blue)
+            textRect = text.get_rect()
+            textRect.center = (0, (height[0] + 1) * square + 3)
+            screen.blit(text, textRect.center)
+            pygame.display.update()
+            time.sleep(2)
+            exit(0)
         #ghost play
         Ghost_play(level)
         if graph[pac[1]][pac[0]][0] == 2:
@@ -288,7 +296,7 @@ def play(choose):
                 pygame.display.update()
                 time.sleep(2)
                 exit(0)
-        if graph[pac[1]][pac[0]][0] == 3:
+        if graph[pac[1]][pac[0]][-1] >= 3:
             renderBoard()
             font = pygame.font.SysFont("arial", 36)
             text = font.render('GAME OVER', True, green, blue)
