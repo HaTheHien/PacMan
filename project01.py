@@ -20,8 +20,6 @@ pacman3 = pygame.image.load('pacman3.png')
 pacman4 = pygame.image.load('pacman4.png')
 pacman = [pacman1]
 
-
-#input level
 pygame.init()
 screen = pygame.display.set_mode((500,500))
 pygame.display.set_caption('PACMAN')
@@ -47,8 +45,15 @@ def input_level():
                     click_AI = True
                 if 10 <= mouse[0] <= 10 + 140 and 300 <= mouse[1] <= 300 +40:
                     return (0,0)
-                #if click_AI == True:
-                    
+                if click_AI == True:
+                    if 80 <= mouse[0] <= 80 + 70 and 100 <= mouse[1] <= 100 +40:
+                        return (1,1)
+                    if 170 <= mouse[0] <= 170 + 70 and 100 <= mouse[1] <= 100 +40:
+                        return (1,2)
+                    if 260 <= mouse[0] <= 260 + 70 and 100 <= mouse[1] <= 100 +40:
+                        return (1,3)
+                    if 350 <= mouse[0] <= 350 + 70 and 100 <= mouse[1] <= 100 +40:
+                        return (1,4)
                     
         if (10 <= mouse[0] <= 10 + 50 and 100 <= mouse[1] <= 100 +40) or click_AI == True: 
             pygame.draw.rect(screen,color_light,[10,100,50,40])  
@@ -85,8 +90,6 @@ def input_level():
             screen.blit(LV4 , (350 + 10, 100))
         
         pygame.display.update()
-    
-    screen.fill(dark)
 
 def input_matrix():
     file = open("input.txt","r")
@@ -96,27 +99,29 @@ def input_matrix():
         row = list(map(int,file.readline().split()))
         graph.append(row)
     screen = pygame.display.set_mode((width[0] * square,(height[0] + 1) * square))
+    screen.fill(dark)
     pygame.display.flip()
 
 def Human():
     x_ = pac[0]
     y_ = pac[1]
+    pygame.event.clear()
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit(0)
             else:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == ord ( "a" ):
+                    if event.key == 97 or event.key == pygame.K_LEFT:
                         x_ = x_ - 1
                         pacman[0] = pacman3
-                    if event.key == ord ( "w" ):
-                        y_ = y_ + 1
-                        pacman[0] = pacman2
-                    if event.key == ord ( "s" ):
+                    if event.key == 119 or event.key == pygame.K_UP:
                         y_ = y_ - 1
+                        pacman[0] = pacman2
+                    if event.key == 115 or event.key == pygame.K_DOWN:
+                        y_ = y_ + 1
                         pacman[0] = pacman4
-                    if event.key == ord ( "d" ):
+                    if event.key == 100 or event.key == pygame.K_RIGHT:
                         x_ = x_ + 1
                         pacman[0] = pacman1
                     if event.key == ord ( "e" ):
@@ -130,9 +135,9 @@ def canMove(x,y):
         return False
     if x >= width[0] or x < 0:
         return False
-    if abs(y) >= height[0] or y > 0:
+    if y >= height[0] or y < 0:
         return False
-    if graph[abs(y)][x] == 1:
+    if graph[y][x] == 1:
         return False
     return True
 
@@ -149,7 +154,7 @@ def renderBoard():
                 screen.blit(food, (j* square,i * square))
             if graph[i][j] == 3:
                 screen.blit(ghost, (j* square,i * square))
-    screen.blit(pacman[0], (pac[0] * square,abs(pac[1]) * square))
+    screen.blit(pacman[0], (pac[0] * square,pac[1] * square))
     pygame.draw.line(screen,orange,(0, height[0]  * square),(width[0] * square, height[0] * square),width=2)
     font1 = pygame.font.SysFont("arial", 36)
     text1 = font1.render("SCORE: " + str(score[0]), True, green, blue)
@@ -162,16 +167,17 @@ def play():
     while run[0] == 1:
         x = pac[0]
         y = pac[1]
-        while canMove(x,y) == False:
+        flag = False
+        while flag == False:
             x,y = Human()
+            flag = canMove(x,y)
         pac[0],pac[1] = x,y
         score[0] -=1
-        if graph[abs(pac[1])][pac[0]] == 2:
+        if graph[pac[1]][pac[0]] == 2:
             score[0] += 20
-            graph[abs(pac[1])][pac[0]] = 0
-        if graph[abs(pac[1])][pac[0]] == 3:
+            graph[pac[1]][pac[0]] = 0
+        if graph[pac[1]][pac[0]] == 3:
             renderBoard()
-            pygame.display.flip()
             font = pygame.font.SysFont("arial", 36)
             text = font.render('GAME OVER', True, green, blue)
             textRect = text.get_rect()
