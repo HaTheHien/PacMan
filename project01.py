@@ -233,14 +233,14 @@ def renderBoard(Ghost = True):
 def play(choose):
     level = choose[1]
     number_food = 0
-    if level > 1:
-        for i in range(len(graph)):
-            for j in range(len(graph[0])):
-                if graph[i][j][0] == 2:
-                    number_food += 1
-                if graph[i][j][0] == 3:
+    for i in range(len(graph)):
+        for j in range(len(graph[0])):
+            if graph[i][j][0] == 2:
+                number_food += 1
+            if graph[i][j][0] == 3:
+                graph[i][j][0] = 0
+                if level != 1:
                     index = len(ghost_array) + 3
-                    graph[i][j][0] = 0
                     graph[i][j].append(index)
                     ghost_node = [random.randint(0, 3),(j , i) ,(j , i),index,0]
                     ghost_array.append(ghost_node)
