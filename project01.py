@@ -330,6 +330,16 @@ def play(choose):
             exit(0)
         #ghost play
         Ghost_play(level)
+        if graph[pac[1]][pac[0]][-1] >= 3:
+            renderBoard()
+            font = pygame.font.SysFont("arial", 36)
+            text = font.render('GAME OVER', True, green, blue)
+            textRect = text.get_rect()
+            textRect.center = (0, (height[0] + 1) * square + 3)
+            screen.blit(text, textRect.center)
+            pygame.display.update()
+            time.sleep(2)
+            exit(0)
         if graph[pac[1]][pac[0]][0] == 2:
             score[0] += 20
             graph[pac[1]][pac[0]][0] = 0
@@ -344,16 +354,6 @@ def play(choose):
                 pygame.display.update()
                 time.sleep(2)
                 exit(0)
-        if graph[pac[1]][pac[0]][-1] >= 3:
-            renderBoard()
-            font = pygame.font.SysFont("arial", 36)
-            text = font.render('GAME OVER', True, green, blue)
-            textRect = text.get_rect()
-            textRect.center = (0, (height[0] + 1) * square + 3)
-            screen.blit(text, textRect.center)
-            pygame.display.update()
-            time.sleep(2)
-            exit(0)
 
 if __name__ == '__main__':
     choose = input_level()
