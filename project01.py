@@ -176,6 +176,45 @@ def canMove(x,y):
         return False
     return True
 
+def return_h(node):
+    return node[1]
+def Mahattan(x_now,y_now):
+    return abs(pac[0] - x_now) + abs(pac[1] - y_now)
+def AlgorithmGhostIndex0(ghost_node):
+    x_now,y_now = ghost_node[1][0],ghost_node[1][1]
+    fqueue = [([(x_now,y_now)],Mahattan(x_now,y_now))]
+    while len(fqueue) > 0:
+        fqueue = sorted(fqueue,key = return_h)
+        node = fqueue.pop(0)
+        if node[0][-1][0] == pac[0] and node[0][-1][1] == pac[1]:
+            ghost_node[1] = node[0][1]
+            break
+        if canMove(node[0][-1][0] + 1,node[0][-1][1])  and (node[0][-1][0] + 1,node[0][-1][1] + 1) not in node[0]:
+            temp = []
+            temp = node[0].copy()
+            temp.append((node[0][-1][0] + 1,node[0][-1][1]))
+            node1 = (temp,Mahattan(node[0][-1][0] + 1,node[0][-1][1]))
+            fqueue.append(node1)
+        if canMove(node[0][-1][0] - 1,node[0][-1][1])  and (node[0][-1][0]  - 1,node[0][-1][1]) not in node[0]:
+            temp = []
+            temp = node[0].copy()
+            temp.append((node[0][-1][0] - 1,node[0][-1][1]))
+            node1 = (temp,Mahattan(node[0][-1][0] - 1,node[0][-1][1]))
+            fqueue.append(node1)
+        if canMove(node[0][-1][0],node[0][-1][1] + 1)  and (node[0][-1][0],node[0][-1][1] + 1) not in node[0]:
+            temp = []
+            temp = node[0].copy()
+            temp.append((node[0][-1][0],node[0][-1][1] + 1))
+            node1 = (temp,Mahattan(node[0][-1][0],node[0][-1][1] + 1))
+            fqueue.append(node1)
+        if canMove(node[0][-1][0],node[0][-1][1] - 1) and (node[0][-1][0],node[0][-1][1] - 1) not in node[0]:
+            temp = []
+            temp = node[0].copy()
+            temp.append((node[0][-1][0],node[0][-1][1] - 1))
+            node1 = (temp,Mahattan(node[0][-1][0],node[0][-1][1] - 1))
+            fqueue.append(node1)
+    return ghost_node
+
 def Ghost_play(level):
     if level <= 2:
         return
@@ -202,6 +241,15 @@ def Ghost_play(level):
                 graph[y_now][x_now].remove(i+3)
                 graph[y_start][x_start].append(i+3)
                 ghost_array[i][1] = (ghost_array[i][2][0],ghost_array[i][2][1])
+    if level == 4:
+        for i in range(0,len(ghost_array)):
+            if ghost_array[i][4] == 0:
+                x_now,y_now = ghost_array[i][1][0],ghost_array[i][1][1]
+                graph[y_now][x_now].remove(i+3)
+                ghost_array[i] = AlgorithmGhostIndex0(ghost_array[i])
+                x_now,y_now = ghost_array[i][1][0],ghost_array[i][1][1]
+                graph[y_now][x_now].append(i+3)
+            
     return
 def renderBoard(Ghost = True):
     screen.fill((0,0,0))
