@@ -4,6 +4,8 @@ import random
 square = 60
 pac = [0,0]
 graph = []
+graph_fog = []
+vision_bool = []
 run = [1]
 white = (255, 255, 255) 
 green = (0, 255, 0) 
@@ -166,7 +168,14 @@ def AI(level):
                 if x_ != pac[0] or y_ != pac[1] or ff == True:
                     return x_,y_,ff
     return 0,0,True
-    
+
+def canSee(x,y):
+    if x >= width[0] or x < 0:
+        return False
+    if y >= height[0] or y < 0:
+        return False
+    return True
+
 def canMove(x,y):
     if x >= width[0] or x < 0:
         return False
@@ -189,7 +198,7 @@ def AlgorithmGhostIndex0(ghost_node):
         if node[0][-1][0] == pac[0] and node[0][-1][1] == pac[1]:
             ghost_node[1] = node[0][1]
             break
-        if canMove(node[0][-1][0] + 1,node[0][-1][1])  and (node[0][-1][0] + 1,node[0][-1][1] + 1) not in node[0]:
+        if canMove(node[0][-1][0] + 1,node[0][-1][1])  and (node[0][-1][0] + 1,node[0][-1][1]) not in node[0]:
             temp = []
             temp = node[0].copy()
             temp.append((node[0][-1][0] + 1,node[0][-1][1]))
@@ -249,9 +258,36 @@ def Ghost_play(level):
                 ghost_array[i] = AlgorithmGhostIndex0(ghost_array[i])
                 x_now,y_now = ghost_array[i][1][0],ghost_array[i][1][1]
                 graph[y_now][x_now].append(i+3)
-            
     return
-def renderBoard(Ghost = True):
+def vision():
+    vision_bool = []
+    for i in range(len(graph)):
+        vision_bool.append([])
+        for j in range(len(graph[0])):
+            vision_bool[i].append(False)
+    fqueue = [((pac[0],pac[1]),0)]
+    explored = []
+    while len(fqueue) > 0:
+        fqueue = sorted(fqueue,key = return_h)
+        node = fqueue.pop(0)
+        vision_bool[node[0][1]][node[0][0]] = True
+        explored.append(node[0])
+        depth = node[1]
+        if depth == 4:
+            continue
+        if depth < 3:
+            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1)]
+        else:
+            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1),(node[0][0]-1,node[0][1]+1),(node[0][0]+1,node[0][1]-1),(node[0][0]-1,node[0][1]-1),(node[0][0]+1,node[0][1]+1)]
+        while len(buffer) > 0:
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            if canSee(temp[0],temp[1])  and temp not in explored:
+                node1 = (temp,depth + 1)
+                fqueue.append(node1)
+    return vision_bool
+    
+    
+def renderBoard(Fog = False):
     screen.fill((0,0,0))
     ghost1 = pygame.image.load('ghost.png')
     ghost2 = pygame.image.load('ghost1.png')
@@ -260,15 +296,43 @@ def renderBoard(Ghost = True):
     ghost = [ghost1,ghost2,ghost3,ghost4]
     wall = pygame.image.load('wall.png')
     food = pygame.image.load('food.png')
-    for i in range(len(graph)):
-        for j in range(len(graph[0])):
-            if graph[i][j][0] == 1:
-                screen.blit(wall, (j* square,i * square))
-            if graph[i][j][0] == 2:
-                screen.blit(food, (j* square,i * square))
-            if len(graph[i][j]) > 1 and Ghost == True:
-                ghost_node = ghost_array[graph[i][j][-1] - 3]
-                screen.blit(ghost[ghost_node[0]], (j* square,i * square))
+    land = pygame.image.load('land_no_fog.png')
+    food_fog = pygame.image.load('food_fog.png')
+    wall_fog = pygame.image.load('wall_fog.png')
+    vision_bool = vision()
+    if Fog == True:
+        for i in range(len(graph)):
+            for j in range(len(graph[0])):
+                if vision_bool[i][j] == True:
+                    screen.blit(land, (j* square,i * square))
+                if len(graph[i][j]) > 1 and vision_bool[i][j] == True:
+                    graph_fog[i][j] = graph[i][j]
+                    ghost_node = ghost_array[graph[i][j][-1] - 3]
+                    screen.blit(ghost[ghost_node[0]], (j* square,i * square))
+                    continue
+                if graph[i][j][0] == 1:
+                    if vision_bool[i][j] == True:
+                        graph_fog[i][j] = [1]
+                        screen.blit(wall, (j* square,i * square))
+                    elif graph_fog[i][j][0] == 1:
+                        screen.blit(wall_fog, (j* square,i * square))
+                if graph[i][j][0] == 2:
+                    if vision_bool[i][j] == True:
+                        graph_fog[i][j] = [2]
+                        screen.blit(food, (j* square,i * square))
+                    elif graph_fog[i][j][0] == 2:
+                        screen.blit(food_fog, (j* square,i * square))
+    else:
+        for i in range(len(graph)):
+            for j in range(len(graph[0])):
+                screen.blit(land, (j* square,i * square))
+                if graph[i][j][0] == 1:
+                    screen.blit(wall, (j* square,i * square))
+                if graph[i][j][0] == 2:
+                    screen.blit(food, (j* square,i * square))
+                if len(graph[i][j]) > 1:
+                    ghost_node = ghost_array[graph[i][j][-1] - 3]
+                    screen.blit(ghost[ghost_node[0]], (j* square,i * square))
     screen.blit(pacman[0], (pac[0] * square,pac[1] * square))
     pygame.draw.line(screen,orange,(0, height[0]  * square),(width[0] * square, height[0] * square),width=2)
     font1 = pygame.font.SysFont("arial", 36)
@@ -293,10 +357,14 @@ def play(choose):
                     ghost_node = [random.randint(0, 3),(j , i) ,(j , i),index,0]
                     ghost_array.append(ghost_node)
     while run[0] == 1:
-        if choose[0] == 1 and level == 1:
-            renderBoard(Ghost = False)
-        else:
-            renderBoard()
+        Fog = False
+        if level >= 3:
+            for i in range(len(graph)):
+                graph_fog.append([])
+                for j in range(len(graph[0])):
+                    graph_fog[i].append([0])
+            Fog = True
+        renderBoard(Fog)
         x = pac[0]
         y = pac[1]
         flag = False
@@ -319,7 +387,7 @@ def play(choose):
         pac[0],pac[1] = x,y
         score[0] -=1
         if graph[pac[1]][pac[0]][-1] >= 3:
-            renderBoard()
+            renderBoard(Fog)
             font = pygame.font.SysFont("arial", 36)
             text = font.render('GAME OVER', True, green, blue)
             textRect = text.get_rect()
@@ -331,7 +399,7 @@ def play(choose):
         #ghost play
         Ghost_play(level)
         if graph[pac[1]][pac[0]][-1] >= 3:
-            renderBoard()
+            renderBoard(Fog)
             font = pygame.font.SysFont("arial", 36)
             text = font.render('GAME OVER', True, green, blue)
             textRect = text.get_rect()
@@ -345,7 +413,7 @@ def play(choose):
             graph[pac[1]][pac[0]][0] = 0
             number_food -= 1
             if number_food == 0:
-                renderBoard()
+                renderBoard(Fog)
                 font = pygame.font.SysFont("arial", 36)
                 text = font.render('YOU WIN', True, green, blue)
                 textRect = text.get_rect()
