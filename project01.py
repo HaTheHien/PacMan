@@ -106,6 +106,9 @@ def input_matrix():
             temp1.append(i)
             row.append(temp1)
         graph.append(row)
+    temp = list(map(int,file.readline().split()))
+    pac[0] = temp[0]
+    pac[1] = temp[1]
     screen = pygame.display.set_mode((width[0] * square,(height[0] + 2) * square))
     screen.fill(dark)
     pygame.display.flip()
@@ -133,6 +136,8 @@ def Human():
                     if event.key == 100 or event.key == pygame.K_RIGHT:
                         x_ = x_ + 1
                         pacman[0] = pacman1
+                    if event.key == pygame.K_SPACE:
+                        return pac[0],pac[1],ff
                     if event.key == pygame.K_ESCAPE:
                         run[0] = 0
                         ff = True
@@ -140,6 +145,7 @@ def Human():
                     return x_,y_,ff
     
 def AI(level):
+    #print(graph_fog)
     ff = False
     x_ = pac[0]
     y_ = pac[1]
@@ -162,6 +168,8 @@ def AI(level):
                     if event.key == 100 or event.key == pygame.K_RIGHT:
                         x_ = x_ + 1
                         pacman[0] = pacman1
+                    if event.key == pygame.K_SPACE:
+                        return pac[0],pac[1],ff
                     if event.key == pygame.K_ESCAPE:
                         run[0] = 0
                         ff = True
@@ -345,6 +353,7 @@ def renderBoard(Fog = False):
 def play(choose):
     level = choose[1]
     number_food = 0
+    Fog = False
     for i in range(len(graph)):
         for j in range(len(graph[0])):
             if graph[i][j][0] == 2:
@@ -356,14 +365,13 @@ def play(choose):
                     graph[i][j].append(index)
                     ghost_node = [random.randint(0, 3),(j , i) ,(j , i),index,0]
                     ghost_array.append(ghost_node)
+    if level >= 3:
+        for i in range(len(graph)):
+            graph_fog.append([])
+            for j in range(len(graph[0])):
+                graph_fog[i].append([0])
+        Fog = True
     while run[0] == 1:
-        Fog = False
-        if level >= 3:
-            for i in range(len(graph)):
-                graph_fog.append([])
-                for j in range(len(graph[0])):
-                    graph_fog[i].append([0])
-            Fog = True
         renderBoard(Fog)
         x = pac[0]
         y = pac[1]
