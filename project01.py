@@ -1,6 +1,8 @@
 import pygame
 import time
 import random
+import sys
+import copy
 square = 60
 pac = [0,0]
 graph = []
@@ -14,6 +16,12 @@ orange = (255,69,0)
 color_light = (170,170,170)
 color_dark = (100,100,100)
 no_color = (255,255,255)
+
+#Use if you need
+graph_temp = []
+path_temp = []
+check = False
+
 dark = (0,0,0)
 score = [0]
 height,width = [0],[0]
@@ -112,6 +120,58 @@ def input_matrix():
     screen = pygame.display.set_mode((width[0] * square,(height[0] + 2) * square))
     screen.fill(dark)
     pygame.display.flip()
+    
+def vision(x,y,vision_bool1 = []):
+    if len(vision_bool1) == 0:
+        for i in range(len(graph)):
+            vision_bool1.append([])
+            for j in range(len(graph[0])):
+                vision_bool1[i].append(False)
+    fqueue = [((x,y),0)]
+    explored = []
+    number = 0
+    while len(fqueue) > 0:
+        node = fqueue.pop(0)
+        if vision_bool1[node[0][1]][node[0][0]] == False:
+            vision_bool1[node[0][1]][node[0][0]] = True
+            number+=1
+        explored.append(node[0])
+        depth = node[1]
+        if depth == 4:
+            continue
+        if depth < 3:
+            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1)]
+        else:
+            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1),(node[0][0]-1,node[0][1]+1),(node[0][0]+1,node[0][1]-1),(node[0][0]-1,node[0][1]-1),(node[0][0]+1,node[0][1]+1)]
+        while len(buffer) > 0:
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            if canSee(temp[0],temp[1])  and temp not in explored:
+                node1 = (temp,depth + 1)
+                fqueue.append(node1)
+    return vision_bool1,number
+
+def vision_4_direct():
+    global vision_bool
+    vision_bool2 = copy.deepcopy(vision_bool)
+    number = 0
+    for i in range(len(graph_fog)):
+        for j in range(len(graph_fog[0])):
+            if graph_fog[i][j][0] != -1:
+                vision_bool2[i][j] = True
+                number+=1
+            else:
+                vision_bool2[i][j] = False
+    x,y = pac[0],pac[1]
+    temp = [('d',0),('a',0),('s',0),('w',0)]
+    n = 0
+    buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+    while len(buffer)>0:
+        node = buffer.pop(0)
+        if canMove(node[0],node[1]) and len(graph[node[1]][node[0]]) == 1:
+            temp2,number_ = vision(node[0],node[1],copy.deepcopy(vision_bool2))
+            temp[n] = (temp[n][0],number_)
+        n+=1
+    return temp
 
 def Human():
     ff = False
@@ -143,38 +203,133 @@ def Human():
                         ff = True
                 if x_ != pac[0] or y_ != pac[1] or ff == True:
                     return x_,y_,ff
+def return_index_1(node):
+    return node[1]
+def return_len_path(node):
+    return len(node[0])
+def return_index_2(node):
+    return node[2]
+def PacMan_A_star(x_now,y_now,x_end,y_end,food_list):
+    fqueue = [([(x_now,y_now)],Mahattan(x_food,y_food),0,food_list)]
+    explored = []
+    while len(fqueue) > 0:
+        fqueue = sorted(fqueue,key = return_index_1)
+        node = fqueue.pop(0)
+        last_node = node[0][-1]
+        food_l = node[3]
+        if graph[last_node[1]][last_node[0]][0] == 2:
+            food_l.remove(last_node)
+        if last_node[0] == x_end and last_node[1] == y_end:
+            return node[0],food_l
+        explored.append(last_node)
+        f = node[1]
+        g = node[2]
+        buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
+        while len(buffer) > 0:
+            path = node[0].copy()
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            path.append(temp)
+            if canMove(temp[0],temp[1]) and len(graph[last_node[1]][last_node[0]]) == 1 and temp not in explored:
+                node1 = (path,Mahattan(temp[0],temp[1])+g,g+1,food_l)
+                fqueue.append(node1)
+    return [],[]
     
-def AI(level):
-    #print(graph_fog)
-    ff = False
-    x_ = pac[0]
-    y_ = pac[1]
-    pygame.event.clear()
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                exit(0)
-            else:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == 97 or event.key == pygame.K_LEFT:
-                        x_ = x_ - 1
-                        pacman[0] = pacman3
-                    if event.key == 119 or event.key == pygame.K_UP:
-                        y_ = y_ - 1
-                        pacman[0] = pacman2
-                    if event.key == 115 or event.key == pygame.K_DOWN:
-                        y_ = y_ + 1
-                        pacman[0] = pacman4
-                    if event.key == 100 or event.key == pygame.K_RIGHT:
-                        x_ = x_ + 1
-                        pacman[0] = pacman1
-                    if event.key == pygame.K_SPACE:
-                        return pac[0],pac[1],ff
-                    if event.key == pygame.K_ESCAPE:
-                        run[0] = 0
-                        ff = True
-                if x_ != pac[0] or y_ != pac[1] or ff == True:
-                    return x_,y_,ff
+def AI(level,number_food):
+    global check
+    global path_temp
+    if level == 1 or level == 2:
+        if check == False:
+            check = True
+            # remove food can't go
+            explored = []
+            food_list = []
+            for i in range(len(graph)):
+                graph_temp.append([])
+                for j in range(len(graph[0])):
+                    graph_temp[i].append([0])
+            fqueue = [(pac[0],pac[1])]
+            explored = []
+            while len(fqueue) > 0:
+                fqueue = sorted(fqueue,key = return_index_1)
+                node = fqueue.pop(0)
+                x,y = node[0],node[1]
+                graph_temp[y][x] = graph[y][x]
+                if graph_temp[y][x][0] == 2:
+                    food_list.append(node)
+                explored.append(node)
+                buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+                while len(buffer) > 0:
+                    temp = buffer.pop(random.randint(0,len(buffer) - 1))
+                    if canMove(temp[0],temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in explored:
+                        fqueue.append(temp)
+            #search
+            max_score
+            fqueue = [([(pac[0],pac[1])],food_list,[0])]
+            while len(fqueue) > 0:
+                node = fqueue.pop(0)
+                last_node = node[0][-1]
+                food_l1 = node[1]
+                score = node[2][-1]
+                if last_node[0] == pac[0] and last_node[1] == pac[1]:#A_star
+                    for i in food_list:
+                        path_,food_l2 = PacMan_A_star(pac[0],pac[1],i[0],i[1],food_l1)
+                        path_.remove((pac[0],pac[1]))
+                        path = node[0] + path_
+                        score_ = (len(food_list) - len(food_l2))*20 - len(path)- 1
+                        fqueue.append(path,food_l2,score_)
+                else: #breath_first_search
+                    path_,food_l2 = PacMan_A_star(last_node[0],last_node[1],pac[0],pac[1],food_l1)
+                    path_.remove((pac[0],pac[1]))
+                    path = node[0] + path_
+                    score_ = (len(food_list) - len(food_l2))*20 - len(path)- 1
+                    
+        else:
+            if len(path_temp) == 0:
+                return 0,0,True
+            temp = path_temp.pop(0)
+            return temp[0],temp[1],False
+    if level == 3 or level == 4:
+        ghost_arr = []
+        food_arr = []
+        for i in range(0,len(graph_fog)):
+            for j in range(0,len(graph_fog[0])):
+                if len(graph_fog[i][j]) > 1:
+                    ghost_arr.append((j,i))
+                    continue
+                if graph_fog[i][j][0] == 2:
+                    food_arr.append((j,i))
+        expand_size = vision_4_direct()
+        
+    if True:   #test
+        ff = False
+        x_ = pac[0]
+        y_ = pac[1]
+        pygame.event.clear()
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    exit(0)
+                else:
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == 97 or event.key == pygame.K_LEFT:
+                            x_ = x_ - 1
+                            pacman[0] = pacman3
+                        if event.key == 119 or event.key == pygame.K_UP:
+                            y_ = y_ - 1
+                            pacman[0] = pacman2
+                        if event.key == 115 or event.key == pygame.K_DOWN:
+                            y_ = y_ + 1
+                            pacman[0] = pacman4
+                        if event.key == 100 or event.key == pygame.K_RIGHT:
+                            x_ = x_ + 1
+                            pacman[0] = pacman1
+                        if event.key == pygame.K_SPACE:
+                            return pac[0],pac[1],ff
+                        if event.key == pygame.K_ESCAPE:
+                            run[0] = 0
+                            ff = True
+                    if x_ != pac[0] or y_ != pac[1] or ff == True:
+                        return x_,y_,ff
     return 0,0,True
 
 def canSee(x,y):
@@ -193,43 +348,30 @@ def canMove(x,y):
         return False
     return True
 
-def return_h(node):
-    return node[1]
 def Mahattan(x_now,y_now):
     return abs(pac[0] - x_now) + abs(pac[1] - y_now)
 def AlgorithmGhostIndex0(ghost_node):
     x_now,y_now = ghost_node[1][0],ghost_node[1][1]
-    fqueue = [([(x_now,y_now)],Mahattan(x_now,y_now))]
+    fqueue = [([(x_now,y_now)],Mahattan(x_now,y_now),0)]
+    explored = []
     while len(fqueue) > 0:
-        fqueue = sorted(fqueue,key = return_h)
+        fqueue = sorted(fqueue,key = return_index_1)
         node = fqueue.pop(0)
-        if node[0][-1][0] == pac[0] and node[0][-1][1] == pac[1]:
+        last_node = node[0][-1]
+        if last_node[0] == pac[0] and last_node[1] == pac[1]:
             ghost_node[1] = node[0][1]
-            break
-        if canMove(node[0][-1][0] + 1,node[0][-1][1])  and (node[0][-1][0] + 1,node[0][-1][1]) not in node[0]:
-            temp = []
-            temp = node[0].copy()
-            temp.append((node[0][-1][0] + 1,node[0][-1][1]))
-            node1 = (temp,Mahattan(node[0][-1][0] + 1,node[0][-1][1]))
-            fqueue.append(node1)
-        if canMove(node[0][-1][0] - 1,node[0][-1][1])  and (node[0][-1][0]  - 1,node[0][-1][1]) not in node[0]:
-            temp = []
-            temp = node[0].copy()
-            temp.append((node[0][-1][0] - 1,node[0][-1][1]))
-            node1 = (temp,Mahattan(node[0][-1][0] - 1,node[0][-1][1]))
-            fqueue.append(node1)
-        if canMove(node[0][-1][0],node[0][-1][1] + 1)  and (node[0][-1][0],node[0][-1][1] + 1) not in node[0]:
-            temp = []
-            temp = node[0].copy()
-            temp.append((node[0][-1][0],node[0][-1][1] + 1))
-            node1 = (temp,Mahattan(node[0][-1][0],node[0][-1][1] + 1))
-            fqueue.append(node1)
-        if canMove(node[0][-1][0],node[0][-1][1] - 1) and (node[0][-1][0],node[0][-1][1] - 1) not in node[0]:
-            temp = []
-            temp = node[0].copy()
-            temp.append((node[0][-1][0],node[0][-1][1] - 1))
-            node1 = (temp,Mahattan(node[0][-1][0],node[0][-1][1] - 1))
-            fqueue.append(node1)
+            break   
+        explored.append(last_node)
+        f = node[1]
+        g = node[2]
+        buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
+        while len(buffer) > 0:
+            path = node[0].copy()
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            path.append(temp)
+            if canMove(temp[0],temp[1]) and temp not in explored:
+                node1 = (path,Mahattan(temp[0],temp[1])+g,g+1)
+                fqueue.append(node1)
     return ghost_node
 
 def Ghost_play(level):
@@ -267,35 +409,9 @@ def Ghost_play(level):
                 x_now,y_now = ghost_array[i][1][0],ghost_array[i][1][1]
                 graph[y_now][x_now].append(i+3)
     return
-def vision():
-    vision_bool = []
-    for i in range(len(graph)):
-        vision_bool.append([])
-        for j in range(len(graph[0])):
-            vision_bool[i].append(False)
-    fqueue = [((pac[0],pac[1]),0)]
-    explored = []
-    while len(fqueue) > 0:
-        fqueue = sorted(fqueue,key = return_h)
-        node = fqueue.pop(0)
-        vision_bool[node[0][1]][node[0][0]] = True
-        explored.append(node[0])
-        depth = node[1]
-        if depth == 4:
-            continue
-        if depth < 3:
-            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1)]
-        else:
-            buffer = [(node[0][0]+1,node[0][1]),(node[0][0]-1,node[0][1]),(node[0][0],node[0][1]+1),(node[0][0],node[0][1]-1),(node[0][0]-1,node[0][1]+1),(node[0][0]+1,node[0][1]-1),(node[0][0]-1,node[0][1]-1),(node[0][0]+1,node[0][1]+1)]
-        while len(buffer) > 0:
-            temp = buffer.pop(random.randint(0,len(buffer) - 1))
-            if canSee(temp[0],temp[1])  and temp not in explored:
-                node1 = (temp,depth + 1)
-                fqueue.append(node1)
-    return vision_bool
-    
     
 def renderBoard(Fog = False):
+    global vision_bool
     screen.fill((0,0,0))
     ghost1 = pygame.image.load('ghost.png')
     ghost2 = pygame.image.load('ghost1.png')
@@ -307,7 +423,7 @@ def renderBoard(Fog = False):
     land = pygame.image.load('land_no_fog.png')
     food_fog = pygame.image.load('food_fog.png')
     wall_fog = pygame.image.load('wall_fog.png')
-    vision_bool = vision()
+    vision_bool,number = vision(pac[0],pac[1],[])
     if Fog == True:
         for i in range(len(graph)):
             for j in range(len(graph[0])):
@@ -330,6 +446,8 @@ def renderBoard(Fog = False):
                         screen.blit(food, (j* square,i * square))
                     elif graph_fog[i][j][0] == 2:
                         screen.blit(food_fog, (j* square,i * square))
+                if graph[i][j][0] == 0 and vision_bool[i][j] == True:
+                    graph_fog[i][j] = [0]
     else:
         for i in range(len(graph)):
             for j in range(len(graph[0])):
@@ -369,8 +487,9 @@ def play(choose):
         for i in range(len(graph)):
             graph_fog.append([])
             for j in range(len(graph[0])):
-                graph_fog[i].append([0])
+                graph_fog[i].append([-1])
         Fog = True
+    #level = 5
     while run[0] == 1:
         renderBoard(Fog)
         x = pac[0]
@@ -381,7 +500,7 @@ def play(choose):
             if choose[0] == 0:
                 x,y,ff = Human()
             else:
-                x,y,ff = AI(level)
+                x,y,ff = AI(level,number_food)
             flag = canMove(x,y)
         if ff == True:
             font = pygame.font.SysFont("arial", 36)
