@@ -21,6 +21,8 @@ no_color = (255,255,255)
 graph_temp = []
 path_temp = []
 check = False
+list_temp = []
+node_temp = []
 
 dark = (0,0,0)
 score = [0]
@@ -35,6 +37,26 @@ pacman = [pacman1]
 pygame.init()
 screen = pygame.display.set_mode((500,500))
 pygame.display.set_caption('PACMAN')
+
+def Mahattan(x_now,y_now,x_end = pac[0],y_end = pac[1]):
+    return abs(x_end - x_now) + abs(y_end - y_now)
+def mahatan_node_temp(node_food):
+    return Mahattan(node_temp[0],node_temp[1],node_food[0],node_food[1])
+def canSee(x,y):
+    if x >= width[0] or x < 0:
+        return False
+    if y >= height[0] or y < 0:
+        return False
+    return True
+
+def canMove(x,y):
+    if x >= width[0] or x < 0:
+        return False
+    if y >= height[0] or y < 0:
+        return False
+    if graph[y][x][0] == 1:
+        return False
+    return True
 
 def input_level():
     click_AI = False
@@ -172,7 +194,15 @@ def vision_4_direct():
             temp[n] = (temp[n][0],number_)
         n+=1
     return temp
-
+def change_direct(x,y):
+    if x < pac[0]:
+        pacman[0] = pacman3
+    if x > pac[0]:
+        pacman[0] = pacman1
+    if y > pac[1]:
+        pacman[0] = pacman4
+    if y < pac[1]:
+        pacman[0] = pacman2
 def Human():
     ff = False
     x_ = pac[0]
@@ -209,15 +239,14 @@ def return_len_path(node):
     return len(node[0])
 def return_index_2(node):
     return node[2]
-def PacMan_A_star(x_now,y_now,x_end,y_end,food_list):
-    fqueue = [([(x_now,y_now)],Mahattan(x_food,y_food),0,food_list)]
-    explored = []
+def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
+    fqueue = [([(x_now,y_now)],Mahattan(x_end,y_end),0,food_list)]
     while len(fqueue) > 0:
         fqueue = sorted(fqueue,key = return_index_1)
         node = fqueue.pop(0)
         last_node = node[0][-1]
         food_l = node[3]
-        if graph[last_node[1]][last_node[0]][0] == 2:
+        if last_node in food_l:
             food_l.remove(last_node)
         if last_node[0] == x_end and last_node[1] == y_end:
             return node[0],food_l
@@ -230,13 +259,14 @@ def PacMan_A_star(x_now,y_now,x_end,y_end,food_list):
             temp = buffer.pop(random.randint(0,len(buffer) - 1))
             path.append(temp)
             if canMove(temp[0],temp[1]) and len(graph[last_node[1]][last_node[0]]) == 1 and temp not in explored:
-                node1 = (path,Mahattan(temp[0],temp[1])+g,g+1,food_l)
+                node1 = (path,Mahattan(temp[0],temp[1],x_end,y_end)+g,g+1,food_l.copy())
                 fqueue.append(node1)
-    return [],[]
-    
+    return [],food_list
+
 def AI(level,number_food):
     global check
     global path_temp
+    global node_temp
     if level == 1 or level == 2:
         if check == False:
             check = True
@@ -254,7 +284,7 @@ def AI(level,number_food):
                 node = fqueue.pop(0)
                 x,y = node[0],node[1]
                 graph_temp[y][x] = graph[y][x]
-                if graph_temp[y][x][0] == 2:
+                if graph_temp[y][x][0] == 2 and node not in explored:
                     food_list.append(node)
                 explored.append(node)
                 buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
@@ -262,31 +292,62 @@ def AI(level,number_food):
                     temp = buffer.pop(random.randint(0,len(buffer) - 1))
                     if canMove(temp[0],temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in explored:
                         fqueue.append(temp)
+            n = len(food_list)
             #search
-            max_score
-            fqueue = [([(pac[0],pac[1])],food_list,[0])]
+            max_path = []
+            max_score = 0
+            fqueue = [([(pac[0],pac[1])],food_list,0)]
+            flag = True
+            number = 0
+            depth = 99999
             while len(fqueue) > 0:
-                node = fqueue.pop(0)
+                fqueue = sorted(fqueue,key = return_index_2)
+                if flag == True:
+                    node = fqueue.pop(0)
+                else:
+                    node = fqueue.pop(-1)
                 last_node = node[0][-1]
                 food_l1 = node[1]
-                score = node[2][-1]
-                if last_node[0] == pac[0] and last_node[1] == pac[1]:#A_star
-                    for i in food_list:
-                        path_,food_l2 = PacMan_A_star(pac[0],pac[1],i[0],i[1],food_l1)
-                        path_.remove((pac[0],pac[1]))
-                        path = node[0] + path_
-                        score_ = (len(food_list) - len(food_l2))*20 - len(path)- 1
-                        fqueue.append(path,food_l2,score_)
-                else: #breath_first_search
-                    path_,food_l2 = PacMan_A_star(last_node[0],last_node[1],pac[0],pac[1],food_l1)
-                    path_.remove((pac[0],pac[1]))
-                    path = node[0] + path_
-                    score_ = (len(food_list) - len(food_l2))*20 - len(path)- 1
-                    
+                score = node[2]
+                if score > max_score:
+                    max_score = score
+                    max_path = node[0]
+                print(max_score)
+                if len(node[0]) > depth:
+                    continue
+                if len(food_l1) == 0:
+                    depth = len(node[0])
+                    continue
+                #A_star
+                node_temp = last_node
+                food_l2 = sorted(food_l1,key = mahatan_node_temp)
+                food_near = food_l2.pop(0)
+                path_,food_l4 = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),[])
+                path_.remove(last_node)
+                path = node[0] + path_
+                score_ = (n - len(food_l4))*20 - len(path)
+                fqueue.append((path,food_l4,score_))
+                while len(food_l2) > 0:
+                    food_near = food_l2.pop(0)
+                    path_1,food_l4 = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
+                    if len(path_1) == 0:
+                        break
+                    path_1.remove(last_node)
+                    path = node[0] + path_1
+                    score_ = (n - len(food_l4))*20 - len(path)
+                    fqueue.append((path,food_l4,score_))
+                    path_ = path_ + path_1
+            print(max_path) 
+            path_temp = max_path
+            if len(path_temp) == 0:
+                return 0,0,True
+            temp = path_temp.pop(0)
+            return temp[0],temp[1],False
         else:
             if len(path_temp) == 0:
                 return 0,0,True
             temp = path_temp.pop(0)
+            time.sleep(0.2)
             return temp[0],temp[1],False
     if level == 3 or level == 4:
         ghost_arr = []
@@ -332,24 +393,6 @@ def AI(level,number_food):
                         return x_,y_,ff
     return 0,0,True
 
-def canSee(x,y):
-    if x >= width[0] or x < 0:
-        return False
-    if y >= height[0] or y < 0:
-        return False
-    return True
-
-def canMove(x,y):
-    if x >= width[0] or x < 0:
-        return False
-    if y >= height[0] or y < 0:
-        return False
-    if graph[y][x][0] == 1:
-        return False
-    return True
-
-def Mahattan(x_now,y_now):
-    return abs(pac[0] - x_now) + abs(pac[1] - y_now)
 def AlgorithmGhostIndex0(ghost_node):
     x_now,y_now = ghost_node[1][0],ghost_node[1][1]
     fqueue = [([(x_now,y_now)],Mahattan(x_now,y_now),0)]
@@ -489,7 +532,7 @@ def play(choose):
             for j in range(len(graph[0])):
                 graph_fog[i].append([-1])
         Fog = True
-    #level = 5
+    level = 5
     while run[0] == 1:
         renderBoard(Fog)
         x = pac[0]
@@ -502,6 +545,7 @@ def play(choose):
             else:
                 x,y,ff = AI(level,number_food)
             flag = canMove(x,y)
+        change_direct(x,y)
         if ff == True:
             font = pygame.font.SysFont("arial", 36)
             text = font.render('SURRENDER', True, green, blue)
@@ -549,7 +593,7 @@ def play(choose):
                 pygame.display.update()
                 time.sleep(2)
                 exit(0)
-
+        
 if __name__ == '__main__':
     choose = input_level()
     input_matrix()
