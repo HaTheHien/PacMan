@@ -463,7 +463,8 @@ def renderBoard(Fog = False):
     ghost = [ghost1,ghost2,ghost3,ghost4]
     wall = pygame.image.load('wall.png')
     food = pygame.image.load('food.png')
-    land = pygame.image.load('land_no_fog.png')
+    land_no_fog = pygame.image.load('land_no_fog.png')
+    land_fog = pygame.image.load('land_fog.png')
     food_fog = pygame.image.load('food_fog.png')
     wall_fog = pygame.image.load('wall_fog.png')
     vision_bool,number = vision(pac[0],pac[1],[])
@@ -471,7 +472,10 @@ def renderBoard(Fog = False):
         for i in range(len(graph)):
             for j in range(len(graph[0])):
                 if vision_bool[i][j] == True:
-                    screen.blit(land, (j* square,i * square))
+                    screen.blit(land_no_fog, (j* square,i * square))
+                else:
+                    if graph_fog[i][j][0] != -1:
+                        screen.blit(land_fog, (j* square,i * square))
                 if len(graph[i][j]) > 1 and vision_bool[i][j] == True:
                     graph_fog[i][j] = graph[i][j]
                     ghost_node = ghost_array[graph[i][j][-1] - 3]
@@ -494,7 +498,7 @@ def renderBoard(Fog = False):
     else:
         for i in range(len(graph)):
             for j in range(len(graph[0])):
-                screen.blit(land, (j* square,i * square))
+                screen.blit(land_no_fog, (j* square,i * square))
                 if graph[i][j][0] == 1:
                     screen.blit(wall, (j* square,i * square))
                 if graph[i][j][0] == 2:
@@ -532,7 +536,7 @@ def play(choose):
             for j in range(len(graph[0])):
                 graph_fog[i].append([-1])
         Fog = True
-    level = 5
+    #level = 5
     while run[0] == 1:
         renderBoard(Fog)
         x = pac[0]
