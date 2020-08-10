@@ -249,7 +249,7 @@ def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
         if last_node in food_l:
             food_l.remove(last_node)
         if last_node[0] == x_end and last_node[1] == y_end:
-            return node[0],food_l
+            return node[0],food_l,explored
         explored.append(last_node)
         f = node[1]
         g = node[2]
@@ -261,7 +261,7 @@ def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
             if canMove(temp[0],temp[1]) and len(graph[last_node[1]][last_node[0]]) == 1 and temp not in explored:
                 node1 = (path,Mahattan(temp[0],temp[1],x_end,y_end)+g,g+1,food_l.copy())
                 fqueue.append(node1)
-    return [],food_list
+    return [],food_list,explored
 
 def AI(level,number_food):
     global check
@@ -278,21 +278,23 @@ def AI(level,number_food):
                 for j in range(len(graph[0])):
                     graph_temp[i].append([0])
             fqueue = [(pac[0],pac[1])]
-            explored = []
+            all_explored = []
             while len(fqueue) > 0:
                 fqueue = sorted(fqueue,key = return_index_1)
                 node = fqueue.pop(0)
                 x,y = node[0],node[1]
                 graph_temp[y][x] = graph[y][x]
-                if graph_temp[y][x][0] == 2 and node not in explored:
+                if graph_temp[y][x][0] == 2 and node not in all_explored:
                     food_list.append(node)
-                explored.append(node)
+                all_explored.append(node)
                 buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
                 while len(buffer) > 0:
                     temp = buffer.pop(random.randint(0,len(buffer) - 1))
-                    if canMove(temp[0],temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in explored:
+                    if canMove(temp[0],temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in all_explored:
                         fqueue.append(temp)
             n = len(food_list)
+            if n != 0:
+                all_explored = []
             #search
             max_path = []
             max_score = 0
@@ -312,24 +314,27 @@ def AI(level,number_food):
                 if score > max_score:
                     max_score = score
                     max_path = node[0]
-                print(max_score)
                 if len(node[0]) > depth:
                     continue
                 if len(food_l1) == 0:
                     depth = len(node[0])
                     continue
+                explored = []
                 #A_star
                 node_temp = last_node
                 food_l2 = sorted(food_l1,key = mahatan_node_temp)
                 food_near = food_l2.pop(0)
-                path_,food_l4 = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),[])
+                path_,food_l4,explored = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),[])
                 path_.remove(last_node)
                 path = node[0] + path_
                 score_ = (n - len(food_l4))*20 - len(path)
                 fqueue.append((path,food_l4,score_))
+                for i in explored:
+                    if i not in all_explored:
+                        all_explored.append(i)
                 while len(food_l2) > 0:
                     food_near = food_l2.pop(0)
-                    path_1,food_l4 = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
+                    path_1,food_l4,explored = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
                     if len(path_1) == 0:
                         break
                     path_1.remove(last_node)
@@ -337,18 +342,21 @@ def AI(level,number_food):
                     score_ = (n - len(food_l4))*20 - len(path)
                     fqueue.append((path,food_l4,score_))
                     path_ = path_ + path_1
+                    for i in explored:
+                        if i not in all_explored:
+                            all_explored.append(i)
             print(max_path) 
             path_temp = max_path
             if len(path_temp) == 0:
-                return 0,0,True
+                return 0,0,True,all_explored
             temp = path_temp.pop(0)
-            return temp[0],temp[1],False
+            return temp[0],temp[1],False,all_explored
         else:
             if len(path_temp) == 0:
-                return 0,0,True
+                return 0,0,True,[]
             temp = path_temp.pop(0)
             time.sleep(0.2)
-            return temp[0],temp[1],False
+            return temp[0],temp[1],False,[]
     if level == 3 or level == 4:
         ghost_arr = []
         food_arr = []
@@ -537,19 +545,27 @@ def play(choose):
                 graph_fog[i].append([-1])
         Fog = True
     #level = 5
+    path = []
+    explored = []
+    a = time.time()
     while run[0] == 1:
         renderBoard(Fog)
         x = pac[0]
         y = pac[1]
         flag = False
         ff = False
+        explored_ = []
         while flag == False and ff == False:
             if choose[0] == 0:
                 x,y,ff = Human()
             else:
-                x,y,ff = AI(level,number_food)
+                x,y,ff,explored_ = AI(level,number_food)
             flag = canMove(x,y)
+            if len(explored_) > 0:
+                explored = explored_
+                a = time.time() - a
         change_direct(x,y)
+        path.append((x,y))
         if ff == True:
             font = pygame.font.SysFont("arial", 36)
             text = font.render('SURRENDER', True, green, blue)
@@ -558,7 +574,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(1)
-            exit(0)
+            return path,explored,a
         pac[0],pac[1] = x,y
         score[0] -=1
         if graph[pac[1]][pac[0]][-1] >= 3:
@@ -570,7 +586,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(2)
-            exit(0)
+            return path,explored,a
         #ghost play
         Ghost_play(level)
         if graph[pac[1]][pac[0]][-1] >= 3:
@@ -582,7 +598,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(2)
-            exit(0)
+            return path,explored,a
         if graph[pac[1]][pac[0]][0] == 2:
             score[0] += 20
             graph[pac[1]][pac[0]][0] = 0
@@ -596,10 +612,21 @@ def play(choose):
                 screen.blit(text, textRect.center)
                 pygame.display.update()
                 time.sleep(2)
-                exit(0)
-        
+                return path,explored,a
+def write_file(path,explored,time):
+    file = open('output.txt','w')
+    file.write('Path:')
+    for i in path:
+        file.write('('+ str(i[0]) +',' + str(i[1]) +') ')
+    file.write('\nExplored:')
+    for i in explored:
+        file.write('('+ str(i[0]) +',' + str(i[1]) +') ')
+    file.write('\nTime:'+str(time))
+    file.close()
+    
 if __name__ == '__main__':
     choose = input_level()
     input_matrix()
-    play(choose)
-
+    path,explored,time = play(choose)
+    write_file(path,explored,time)
+    exit(0)
