@@ -293,8 +293,6 @@ def AI(level,number_food):
                     if canMove(temp[0],temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in all_explored:
                         fqueue.append(temp)
             n = len(food_list)
-            if n != 0:
-                all_explored = []
             #search
             max_path = []
             max_score = 0
@@ -319,7 +317,6 @@ def AI(level,number_food):
                 if len(food_l1) == 0:
                     depth = len(node[0])
                     continue
-                explored = []
                 #A_star
                 node_temp = last_node
                 food_l2 = sorted(food_l1,key = mahatan_node_temp)
@@ -329,9 +326,6 @@ def AI(level,number_food):
                 path = node[0] + path_
                 score_ = (n - len(food_l4))*20 - len(path)
                 fqueue.append((path,food_l4,score_))
-                for i in explored:
-                    if i not in all_explored:
-                        all_explored.append(i)
                 while len(food_l2) > 0:
                     food_near = food_l2.pop(0)
                     path_1,food_l4,explored = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
@@ -342,21 +336,17 @@ def AI(level,number_food):
                     score_ = (n - len(food_l4))*20 - len(path)
                     fqueue.append((path,food_l4,score_))
                     path_ = path_ + path_1
-                    for i in explored:
-                        if i not in all_explored:
-                            all_explored.append(i)
-            print(max_path) 
             path_temp = max_path
             if len(path_temp) == 0:
-                return 0,0,True,all_explored
+                return 0,0,True
             temp = path_temp.pop(0)
-            return temp[0],temp[1],False,all_explored
+            return temp[0],temp[1],False
         else:
             if len(path_temp) == 0:
                 return 0,0,True,[]
             temp = path_temp.pop(0)
             time.sleep(0.2)
-            return temp[0],temp[1],False,[]
+            return temp[0],temp[1],False
     if level == 3 or level == 4:
         ghost_arr = []
         food_arr = []
@@ -398,7 +388,7 @@ def AI(level,number_food):
                             run[0] = 0
                             ff = True
                     if x_ != pac[0] or y_ != pac[1] or ff == True:
-                        return x_,y_,ff
+                        return x_,y_,ff,[]
     return 0,0,True
 
 def AlgorithmGhostIndex0(ghost_node):
@@ -559,7 +549,7 @@ def play(choose):
             if choose[0] == 0:
                 x,y,ff = Human()
             else:
-                x,y,ff,explored_ = AI(level,number_food)
+                x,y,ff = AI(level,number_food)
             flag = canMove(x,y)
             if len(explored_) > 0:
                 explored = explored_
@@ -574,7 +564,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(1)
-            return path,explored,a
+            return path,a
         pac[0],pac[1] = x,y
         score[0] -=1
         if graph[pac[1]][pac[0]][-1] >= 3:
@@ -586,7 +576,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(2)
-            return path,explored,a
+            return path,a
         #ghost play
         Ghost_play(level)
         if graph[pac[1]][pac[0]][-1] >= 3:
@@ -598,7 +588,7 @@ def play(choose):
             screen.blit(text, textRect.center)
             pygame.display.update()
             time.sleep(2)
-            return path,explored,a
+            return path,a
         if graph[pac[1]][pac[0]][0] == 2:
             score[0] += 20
             graph[pac[1]][pac[0]][0] = 0
@@ -612,21 +602,19 @@ def play(choose):
                 screen.blit(text, textRect.center)
                 pygame.display.update()
                 time.sleep(2)
-                return path,explored,a
-def write_file(path,explored,time):
+                return path,a
+def write_file(path,time):
     file = open('output.txt','w')
     file.write('Path:')
     for i in path:
         file.write('('+ str(i[0]) +',' + str(i[1]) +') ')
-    file.write('\nExplored:')
-    for i in explored:
-        file.write('('+ str(i[0]) +',' + str(i[1]) +') ')
+    file.write('\nLen path:' + str(len(path)))
     file.write('\nTime:'+str(time))
     file.close()
     
 if __name__ == '__main__':
     choose = input_level()
     input_matrix()
-    path,explored,time = play(choose)
-    write_file(path,explored,time)
+    path,time = play(choose)
+    write_file(path,time)
     exit(0)
