@@ -240,17 +240,22 @@ def return_len_path(node):
 def return_index_2(node):
     return node[2]
 def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
+    check= False
+    if len(explored) > 0:
+        check = True
     fqueue = [([(x_now,y_now)],Mahattan(x_end,y_end),0,food_list)]
     while len(fqueue) > 0:
         fqueue = sorted(fqueue,key = return_index_1)
         node = fqueue.pop(0)
         last_node = node[0][-1]
         food_l = node[3]
+        explored.append(last_node)
         if last_node in food_l:
             food_l.remove(last_node)
+            if check == True:
+                return node[0],food_l,explored
         if last_node[0] == x_end and last_node[1] == y_end:
             return node[0],food_l,explored
-        explored.append(last_node)
         f = node[1]
         g = node[2]
         buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
@@ -343,7 +348,7 @@ def AI(level,number_food):
             return temp[0],temp[1],False
         else:
             if len(path_temp) == 0:
-                return 0,0,True,[]
+                return 0,0,True
             temp = path_temp.pop(0)
             time.sleep(0.2)
             return temp[0],temp[1],False
@@ -388,7 +393,7 @@ def AI(level,number_food):
                             run[0] = 0
                             ff = True
                     if x_ != pac[0] or y_ != pac[1] or ff == True:
-                        return x_,y_,ff,[]
+                        return x_,y_,ff
     return 0,0,True
 
 def AlgorithmGhostIndex0(ghost_node):
