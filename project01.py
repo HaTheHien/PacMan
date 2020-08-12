@@ -3,6 +3,7 @@ import time
 import random
 import sys
 import copy
+import operator
 square = 60
 pac = [0,0]
 graph = []
@@ -353,6 +354,7 @@ def AI(level,number_food):
             time.sleep(0.2)
             return temp[0],temp[1],False
     if level == 3 or level == 4:
+        time.sleep(0.05)
         ghost_arr = []
         food_arr = []
         for i in range(0,len(graph_fog)):
@@ -363,6 +365,29 @@ def AI(level,number_food):
                 if graph_fog[i][j][0] == 2:
                     food_arr.append((j,i))
         expand_size = vision_4_direct()
+        print(ghost_arr)
+        print(food_arr)
+        expand_size = sorted(expand_size, key = operator.itemgetter(1))
+        print(expand_size)
+        max_expand_move = expand_size[-1][0]
+        print(max_expand_move)
+        if len(food_arr) == 0 and len(ghost_arr) == 0:
+            if max_expand_move == 'a':
+                pac[0] -= 1
+            if max_expand_move == 'w':
+                pac[1] -= 1
+            if max_expand_move == 's':
+                pac[1] += 1
+            if max_expand_move == 'd':
+                pac[0] += 1
+            return pac[0], pac[1], False
+                
+            
+        
+                
+                    
+            
+        
         
     if True:   #test
         ff = False
@@ -510,7 +535,7 @@ def renderBoard(Fog = False):
                     ghost_node = ghost_array[graph[i][j][-1] - 3]
                     screen.blit(ghost[ghost_node[0]], (j* square,i * square))
     screen.blit(pacman[0], (pac[0] * square,pac[1] * square))
-    pygame.draw.line(screen,orange,(0, height[0]  * square),(width[0] * square, height[0] * square),width=2)
+    #pygame.draw.line(screen,orange,(0, height[0]  * square),(width[0] * square, height[0] * square),width=2)
     font1 = pygame.font.SysFont("arial", 36)
     text1 = font1.render("SCORE: " + str(score[0]), True, green, blue)
     textRect1 = text1.get_rect()
