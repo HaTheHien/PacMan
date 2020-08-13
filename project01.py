@@ -241,8 +241,9 @@ def return_len_path(node):
 def return_index_2(node):
     return node[2]
 def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
+    global node_temp
     check= False
-    if len(explored) > 0:
+    if len(explored) > 0 or len(node_temp) > 0:
         check = True
     fqueue = [([(x_now,y_now)],Mahattan(x_end,y_end),0,food_list)]
     while len(fqueue) > 0:
@@ -251,14 +252,16 @@ def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
         last_node = node[0][-1]
         food_l = node[3]
         explored.append(last_node)
+        f = node[1]
+        g = node[2]
         if last_node in food_l:
             food_l.remove(last_node)
             if check == True:
                 return node[0],food_l,explored
+            else:
+                g-=1
         if last_node[0] == x_end and last_node[1] == y_end:
             return node[0],food_l,explored
-        f = node[1]
-        g = node[2]
         buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
         while len(buffer) > 0:
             path = node[0].copy()
@@ -332,6 +335,8 @@ def AI(level,number_food):
                 path = node[0] + path_
                 score_ = (n - len(food_l4))*20 - len(path)
                 fqueue.append((path,food_l4,score_))
+                node_temp = food_near
+                explored = []
                 while len(food_l2) > 0:
                     food_near = food_l2.pop(0)
                     path_1,food_l4,explored = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
@@ -342,6 +347,7 @@ def AI(level,number_food):
                     score_ = (n - len(food_l4))*20 - len(path)
                     fqueue.append((path,food_l4,score_))
                     path_ = path_ + path_1
+                    node_temp = []
             path_temp = max_path
             if len(path_temp) == 0:
                 return 0,0,True
@@ -359,11 +365,11 @@ def AI(level,number_food):
         food_arr = []
         for i in range(0,len(graph_fog)):
             for j in range(0,len(graph_fog[0])):
+                if graph_fog[i][j][0] == 2:
+                    food_arr.append((j,i))
                 if len(graph_fog[i][j]) > 1:
                     ghost_arr.append((j,i))
                     continue
-                if graph_fog[i][j][0] == 2:
-                    food_arr.append((j,i))
         expand_size = vision_4_direct()
         print(ghost_arr)
         print(food_arr)
