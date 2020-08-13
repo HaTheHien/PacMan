@@ -204,6 +204,7 @@ def change_direct(x,y):
         pacman[0] = pacman4
     if y < pac[1]:
         pacman[0] = pacman2
+        
 def Human():
     ff = False
     x_ = pac[0]
@@ -573,7 +574,8 @@ def play(choose):
     #level = 5
     path = []
     explored = []
-    a = time.time()
+    a = 0
+    TimeStart = time.time()
     while run[0] == 1:
         renderBoard(Fog)
         if graph[pac[1]][pac[0]][0] == 2:
@@ -603,7 +605,7 @@ def play(choose):
             flag = canMove(x,y)
             if len(explored_) > 0:
                 explored = explored_
-                a = time.time() - a
+        a = time.time() - TimeStart
         change_direct(x,y)
         path.append((x,y))
         if ff == True:
