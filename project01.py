@@ -576,6 +576,20 @@ def play(choose):
     a = time.time()
     while run[0] == 1:
         renderBoard(Fog)
+        if graph[pac[1]][pac[0]][0] == 2:
+            score[0] += 20
+            graph[pac[1]][pac[0]][0] = 0
+            number_food -= 1
+            if number_food == 0:
+                renderBoard(Fog)
+                font = pygame.font.SysFont("arial", 36)
+                text = font.render('YOU WIN', True, green, blue)
+                textRect = text.get_rect()
+                textRect.center = (0, (height[0] + 1) * square + 3)
+                screen.blit(text, textRect.center)
+                pygame.display.update()
+                time.sleep(2)
+                return path,a
         x = pac[0]
         y = pac[1]
         flag = False
@@ -625,20 +639,7 @@ def play(choose):
             pygame.display.update()
             time.sleep(2)
             return path,a
-        if graph[pac[1]][pac[0]][0] == 2:
-            score[0] += 20
-            graph[pac[1]][pac[0]][0] = 0
-            number_food -= 1
-            if number_food == 0:
-                renderBoard(Fog)
-                font = pygame.font.SysFont("arial", 36)
-                text = font.render('YOU WIN', True, green, blue)
-                textRect = text.get_rect()
-                textRect.center = (0, (height[0] + 1) * square + 3)
-                screen.blit(text, textRect.center)
-                pygame.display.update()
-                time.sleep(2)
-                return path,a
+        
 def write_file(path,time):
     file = open('output.txt','w')
     file.write('Path:')
