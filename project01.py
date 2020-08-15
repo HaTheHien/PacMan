@@ -4,7 +4,7 @@ import random
 import sys
 import copy
 import operator
-square = 60
+square = 30
 pac = [0,0]
 graph = []
 graph_fog = []
@@ -24,6 +24,9 @@ path_temp = []
 check = False
 list_temp = []
 node_temp = []
+black_list = []
+not_centre = []
+danger = []
 
 dark = (0,0,0)
 score = [0]
@@ -244,6 +247,7 @@ def Human():
                         ff = True
                 if x_ != pac[0] or y_ != pac[1] or ff == True:
                     return x_,y_,ff
+                
 def return_index_1(node):
     return node[1]
 def return_len_path(node):
@@ -286,6 +290,8 @@ def AI(level,number_food):
     global check
     global path_temp
     global node_temp
+    global black_list
+    global danger
     if level == 1 or level == 2:
         if check == False:
             check = True
@@ -316,15 +322,11 @@ def AI(level,number_food):
             max_path = []
             max_score = 0
             fqueue = [([(pac[0],pac[1])],food_list,0)]
-            flag = True
             number = 0
             depth = 99999
             while len(fqueue) > 0:
                 fqueue = sorted(fqueue,key = return_index_2)
-                if flag == True:
-                    node = fqueue.pop(0)
-                else:
-                    node = fqueue.pop(-1)
+                node = fqueue.pop(0)
                 last_node = node[0][-1]
                 food_l1 = node[1]
                 score = node[2]
@@ -346,7 +348,7 @@ def AI(level,number_food):
                 score_ = (n - len(food_l4))*20 - len(path)
                 fqueue.append((path,food_l4,score_))
                 node_temp = food_near
-                explored = []
+                path_ = []
                 while len(food_l2) > 0:
                     food_near = food_l2.pop(0)
                     path_1,food_l4,explored = PacMan_A_star(last_node[0],last_node[1],food_near[0],food_near[1],food_l1.copy(),path_)
@@ -369,7 +371,125 @@ def AI(level,number_food):
             temp = path_temp.pop(0)
             time.sleep(0.2)
             return temp[0],temp[1],False
-    if level == 3 or level == 4:
+    if level == 3:
+        time.sleep(0.2)
+        food_arr = []
+        for i in range(len(graph)):
+            graph_temp.append([])
+            for j in range(len(graph[0])):
+                graph_temp[i].append([0])
+        fqueue = [(pac[0],pac[1])]
+        all_explored = []
+        while len(fqueue) > 0:
+            number = -1
+            fqueue = sorted(fqueue,key = return_index_1)
+            node = fqueue.pop(0)
+            x,y = node[0],node[1]
+            graph_temp[y][x] = graph_fog[y][x]
+            if graph_temp[y][x][0] == 2 and node not in all_explored and node not in black_list:
+                number = 0
+                food_arr.append(node)
+            all_explored.append(node)
+            buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+            if node in black_list:
+                number = -1
+            while len(buffer) > 0:
+                temp = buffer.pop(random.randint(0,len(buffer) - 1))
+                if number != -1 and canMove(temp[0],temp[1]):
+                    if len(graph_temp[temp[1]][temp[0]]) > 1:
+                        number+=1
+                    else:
+                        if graph_temp[temp[1]][temp[0]][0] == 0:
+                            number-=1
+                if number >= 2:
+                   black_list.append(number)
+                if number >= 0 and number < 2:
+                    if node in black_list:
+                        black_list.remove(node)
+                if canMove(temp[0],temp[1]) and len(graph_temp[temp[1]][temp[0]]) == 1 and temp not in all_explored:
+                    fqueue.append(temp)
+        danger2 = []
+        for i in range(len(graph)):
+            for j in range(len(graph[0])):
+                if len(graph_fog[i][j]) > 1:
+                    buffer = [(j+1,i),(j-1,i),(j,i+1),(j,i-1)]
+                    while len(buffer) > 0:
+                        temp = buffer.pop(0)
+                        if canMove(temp[0],temp[1]):
+                            if temp in danger:
+                                if temp not in black_list and temp not in not_centre:
+                                    black_list.append(temp)
+                            else:
+                                if temp in black_list:
+                                    black_list.remove(temp)
+                                    not_centre.append(temp)
+                                danger2.append(temp)
+        for i in danger:
+            if i not in danger2:
+                not_centre.append(i)
+        for i in danger2:
+            if i not in danger:
+                danger.append(i)
+        if len(food_arr) == 0:
+            expand_size = vision_4_direct()
+            expand_size = sorted(expand_size, key = operator.itemgetter(1))
+            max_expand_move = expand_size[-1][0]
+            if expand_size[1] == 0:
+                return 0,0,True
+            if max_expand_move == 'a' and canMove(pac[0]-1,pac[1]):
+                pac[0] -= 1
+            if max_expand_move == 'w' and canMove(pac[0],pac[1]-1):
+                pac[1] -= 1
+            if max_expand_move == 's' and canMove(pac[0]+1,pac[1]):
+                pac[1] += 1
+            if max_expand_move == 'd' and canMove(pac[0],pac[1] + 1):
+                pac[0] += 1
+            return pac[0], pac[1], True
+        #BFS
+        max_score = 0
+        max_path = []
+        explored = []
+        fqueue = [([(pac[0],pac[1])],food_arr,0)]
+        while len(fqueue) > 0:
+            node = fqueue.pop(0)
+            last_node = node[0][-1]
+            food_l1 = node[1]
+            score = node[2]
+            x,y = last_node[0],last_node[1]
+            if graph_fog[y][x][0] == 2 and (x,y) not in black_list:
+                food_l1.remove((x,y))
+                score+=20
+            if score > max_score:
+                max_score = score
+                max_path = node[0]
+            buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+            while len(buffer) > 0:
+                path = node[0].copy()
+                temp = buffer.pop(0)
+                if canMove(temp[0],temp[1]) and graph_fog[temp[1]][temp[0]][0] != -1 and temp not in explored and temp not in black_list:
+                    path.append(temp)
+                    if temp in danger:
+                        fqueue.append((path,food_l1.copy(),score - 5))
+                    else:
+                        fqueue.append((path,food_l1.copy(),score - 1))
+                    explored.append(temp)
+        if len(max_path) == 0:
+            return 0,0,True
+        else:
+            x,y = max_path[1][0],max_path[1][1]
+            flag = False
+            if len(graph_fog[y][x]) == 1:
+                buffer = [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
+                while len(buffer) > 0:
+                    temp = buffer.pop(0)
+                    if canMove(temp[0],temp[1]) and len(graph_fog[temp[1]][temp[0]]) > 1:
+                        flag = True
+                        break
+                if flag == False:    
+                    return max_path[1][0],max_path[1][1],False
+            return pac[0],pac[1],False
+            
+    if level == 4:    
         time.sleep(0.05)
         ghost_arr = []
         food_arr = []
@@ -381,15 +501,12 @@ def AI(level,number_food):
                     ghost_arr.append((j,i))
                     continue
         expand_size = vision_4_direct()
-        print(ghost_arr)
-        print(food_arr)
         expand_size = sorted(expand_size, key = operator.itemgetter(1))
-        print(expand_size)
         max_expand_move = expand_size[-1][0]
-        print(max_expand_move)
         if len(food_arr) == 0 and len(ghost_arr) == 0:
             pac[0], pac[1] = Move(pac[0], pac[1], max_expand_move)
             return pac[0], pac[1], False
+<<<<<<< HEAD
         if len(food_arr) != 0 and len(ghost_arr) == 0:
             if check == False:
                 check = True
@@ -475,6 +592,9 @@ def AI(level,number_food):
                 temp = path_temp.pop(0)
                 time.sleep(0.2)
                 return temp[0], temp[1], False
+=======
+        
+>>>>>>> eb1f3f98a2ec24b51d7bf7ab7517d226d77e67be
             
         
                 
@@ -667,6 +787,8 @@ def play(choose):
         if graph[pac[1]][pac[0]][0] == 2:
             score[0] += 20
             graph[pac[1]][pac[0]][0] = 0
+            if level >= 3:
+                graph_fog[pac[1]][pac[0]][0] = 0
             number_food -= 1
             if number_food == 0:
                 renderBoard(Fog)
