@@ -4,7 +4,7 @@ import random
 import sys
 import copy
 import operator
-square = 60
+square = 30
 pac = [0,0]
 graph = []
 graph_fog = []
