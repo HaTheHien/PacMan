@@ -542,7 +542,7 @@ def AI(level,number_food):
             if max_expand_move == 'd' and canMove(pac[0],pac[1] + 1):
                 pac[0] += 1
 
-        #print(black_list)
+        print(black_list)
         #print(danger,'\n')
         #BFS
         max_score = 0
@@ -750,6 +750,8 @@ def AI(level,number_food):
                         if move_list[i][0] == node[1]:
                             move_list[i][1] -= 10
                     move_list = sorted(move_list, key = operator.itemgetter(1))
+                    if len(move_list) == 0:
+                        return pac[0],pac[1],True
                     move = move_list.pop(0)
             return move[0][0], move[0][1], False
     if True:   #test
