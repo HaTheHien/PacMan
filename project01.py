@@ -712,47 +712,35 @@ def AI(level,number_food):
         if len(ghost_list) != 0:
             move_list = []
             buffer = [(pac[0] + 1, pac[1]), (pac[0] - 1, pac[1]), (pac[0], pac[1] + 1), (pac[0], pac[1] - 1),(pac[0], pac[1])]
-            while len(buffer) > 0:
-                temp = buffer.pop(random.randint(0,len(buffer) - 1))
-                if canMove(temp[0], temp[1]) == True:
-                    if is_near_ghost(temp[0],temp[1],ghost_list) == True:
+            for i in range(len(buffer)):
+                if canMove(buffer[i][0], buffer[i][1]) == True:
+                    if is_near_ghost(buffer[i][0],buffer[i][1],ghost_list) == True:
                             continue
-                    move_list.append([temp, f_function(temp[0], temp[1], food_list, ghost_list)])
+                    move_list.append([buffer[i], f_function(buffer[i][0], buffer[i][1], food_list, ghost_list)])
             move_list = sorted(move_list, key = operator.itemgetter(1))
             if len(move_list) == 0:
                 return pac[0],pac[1],True
             move = move_list.pop(0)
             flag = False
-            node = []
             if len(food_list) == 0:
-                fqueue = [[(pac[0], pac[1])]]
+                fqueue = [(pac[0], pac[1])]
                 all_explored = []
                 while len(fqueue) > 0:
+                    fqueue = sorted(fqueue, key=return_index_1)
                     node = fqueue.pop(0)
-                    last_node = node[-1]
-                    x, y = last_node[0], last_node[1]
+                    x, y = node[0], node[1]
                     graph_temp[y][x] = graph_fog[y][x]
                     if graph_fog[y][x][0] == -1:
                         flag = True
                         break
                     buffer = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
                     while len(buffer) > 0:
-                        path = node.copy()
                         temp = buffer.pop(random.randint(0, len(buffer) - 1))
-                        path.append(temp)
                         if canMove_fog(temp[0], temp[1]) and temp not in all_explored and len(graph_fog[temp[1]][temp[0]]) == 1:
-                            fqueue.append(path)
-                            all_explored.append(temp)
+                            fqueue.append(temp)
+                            all_explored.append(node)
                 if flag == False:
                     return pac[0],pac[1],True
-                else:
-                    for i in range(len(move_list)):
-                        if move_list[i][0] == node[1]:
-                            move_list[i][1] -= 10
-                    move_list = sorted(move_list, key = operator.itemgetter(1))
-                    if len(move_list) == 0:
-                        return pac[0],pac[1],True
-                    move = move_list.pop(0)
             return move[0][0], move[0][1], False
     if True:   #test
         ff = False
