@@ -41,20 +41,12 @@ pacman = [pacman1]
 pygame.init()
 screen = pygame.display.set_mode((500,500))
 pygame.display.set_caption('PACMAN')
-def Move(x_now, y_now, max_expand_move):
-    if max_expand_move == 'a':
-        x_now -= 1
-    if max_expand_move == 'w':
-        y_now -= 1
-    if max_expand_move == 's':
-        y_now += 1
-    if max_expand_move == 'd':
-        x_now += 1
-    return x_now, y_now
+
 def Mahattan(x_now,y_now,x_end = pac[0],y_end = pac[1]):
     return abs(x_end - x_now) + abs(y_end - y_now)
 def mahatan_node_temp(node_food):
     return Mahattan(node_temp[0],node_temp[1],node_food[0],node_food[1])
+
 def canSee(x,y):
     if x >= width[0] or x < 0:
         return False
@@ -70,6 +62,47 @@ def canMove(x,y):
     if graph[y][x][0] == 1:
         return False
     return True
+def canMove_fog(x, y):
+    if x >= width[0] or x < 0:
+        return False
+    if y >= height[0] or y < 0:
+        return False
+    if graph_fog[y][x][0] == 1:
+        return False
+    return True
+
+def f_function(x_now, y_now, food_list, ghost_list):
+    fqueue = [([(x_now,y_now)],0)]
+    near_food,near_ghost = [],[]
+    explored = []
+    while len(fqueue) > 0:
+        node = fqueue.pop(0)
+        last_node = node[0][-1]
+        if len(near_food) != 0 and len(near_ghost) != 0:
+            break
+        if last_node in ghost_list and len(near_ghost) == 0:
+            near_ghost = node[0]
+            if len(food_list) == 0:
+                break
+        if last_node in food_list and len(near_food) == 0:
+            near_food = node[0]
+            if len(ghost_list) == 0:
+                break
+        g = node[1]
+        buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
+        while len(buffer) > 0:
+            path = node[0].copy()
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            path.append(temp)
+            if canMove_fog(temp[0],temp[1]) and temp not in explored:
+                node1 = (path,Mahattan(temp[0],g+1))
+                fqueue.append(node1)
+                explored.append(last_node)
+    f_value = (len(near_food) - 1) + 3*len(food_list) - 4*(len(near_ghost) - 1)
+    print(x_now, ' ', y_now)
+    print(f_value, '\n')
+    return f_value
+    
 
 def input_level():
     click_AI = False
@@ -286,6 +319,38 @@ def PacMan_A_star(x_now,y_now,x_end,y_end,food_list,explored = []):
                 fqueue.append(node1)
     return [],food_list,explored
 
+def PacMan_A_star_fog(x_now,y_now,x_end,y_end,food_list,explored = []):
+    global node_temp
+    check = False
+    if len(explored) > 0 or len(node_temp) > 0:
+        check = True
+    fqueue = [([(x_now,y_now)],Mahattan(x_end,y_end),0,food_list)]
+    while len(fqueue) > 0:
+        fqueue = sorted(fqueue,key = return_index_1)
+        node = fqueue.pop(0)
+        last_node = node[0][-1]
+        food_l = node[3]
+        explored.append(last_node)
+        f = node[1]
+        g = node[2]
+        if last_node in food_l:
+            food_l.remove(last_node)
+            if check == True:
+                return node[0],food_l,explored
+            else:
+                g-=1
+        if last_node[0] == x_end and last_node[1] == y_end:
+            return node[0],food_l,explored
+        buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
+        while len(buffer) > 0:
+            path = node[0].copy()
+            temp = buffer.pop(random.randint(0,len(buffer) - 1))
+            path.append(temp)
+            if canMove(temp[0],temp[1]) and len(graph_fog[last_node[1]][last_node[0]]) == 1 and graph_fog[last_node[1]][last_node[0]][0] != -1 and temp not in explored:
+                node1 = (path,Mahattan(temp[0],temp[1],x_end,y_end)+g,g+1,food_l.copy())
+                fqueue.append(node1)
+    return [],food_list,explored
+
 def AI(level,number_food):
     global check
     global path_temp
@@ -490,111 +555,142 @@ def AI(level,number_food):
             return pac[0],pac[1],False
             
     if level == 4:    
-        time.sleep(0.05)
-        ghost_arr = []
-        food_arr = []
-        for i in range(0,len(graph_fog)):
-            for j in range(0,len(graph_fog[0])):
-                if graph_fog[i][j][0] == 2:
-                    food_arr.append((j,i))
-                if len(graph_fog[i][j]) > 1:
-                    ghost_arr.append((j,i))
-                    continue
+        time.sleep(0.5)
         expand_size = vision_4_direct()
         expand_size = sorted(expand_size, key = operator.itemgetter(1))
         max_expand_move = expand_size[-1][0]
-        if len(food_arr) == 0 and len(ghost_arr) == 0:
-            pac[0], pac[1] = Move(pac[0], pac[1], max_expand_move)
-            return pac[0], pac[1], False
-<<<<<<< HEAD
-        if len(food_arr) != 0 and len(ghost_arr) == 0:
-            if check == False:
-                check = True
-                # remove food can't go
+        explored = []
+        food_list = []
+        ghost_list = []
+        for i in range(len(graph)):
+            graph_temp.append([])
+            for j in range(len(graph[0])):
+                  graph_temp[i].append([0])
+        fqueue = [(pac[0], pac[1])]
+        all_explored = []
+        while len(fqueue) > 0:
+            fqueue = sorted(fqueue, key=return_index_1)
+            node = fqueue.pop(0)
+            x, y = node[0], node[1]
+            graph_temp[y][x] = graph_fog[y][x]
+            if graph_temp[y][x][0] == 2 and node not in food_list:
+                food_list.append(node)
+            if len(graph_temp[y][x]) > 1 and node not in ghost_list:
+                ghost_list.append(node)
+                continue
+            buffer = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+            while len(buffer) > 0:
+                temp = buffer.pop(random.randint(0, len(buffer) - 1))
+                if canMove_fog(temp[0], temp[1]) and temp not in all_explored and graph_fog[temp[1]][temp[0]][0] != -1:
+                    fqueue.append(temp)
+                    all_explored.append(node)
+        if len(food_list) == 0 and len(ghost_list) == 0:
+            x_now, y_now = pac[0], pac[1]
+            fqueue = [([(x_now,y_now)],Mahattan(x_now,y_now),0)]
+            explored = []
+            while len(fqueue) > 0:
+                fqueue = sorted(fqueue,key = return_index_1)
+                node = fqueue.pop(0)
+                last_node = node[0][-1]
+                if graph_fog[last_node[1]][last_node[0]][0] == -1:
+                    return node[0][1][0], node[0][1][1], False   
+                explored.append(last_node)
+                f = node[1]
+                g = node[2]
+                buffer = [(last_node[0]+1,last_node[1]),(last_node[0]-1,last_node[1]),(last_node[0],last_node[1]+1),(last_node[0],last_node[1]-1)]
+                while len(buffer) > 0:
+                    path = node[0].copy()
+                    temp = buffer.pop(random.randint(0,len(buffer) - 1))
+                    path.append(temp)
+                    if canMove_fog(temp[0],temp[1]) and temp not in explored:
+                        node1 = (path,Mahattan(temp[0],temp[1])+g,g+1)
+                        fqueue.append(node1)
+            return pac[0], pac[1], True
+        if len(food_list) != 0 and len(ghost_list) == 0:
+            n = len(food_list)
+            # search
+            max_path = []
+            max_score = 0
+            fqueue = [([(pac[0], pac[1])], food_list, 0)]
+            flag = True
+            number = 0
+            depth = 99999
+            while len(fqueue) > 0:
+                fqueue = sorted(fqueue, key=return_index_2)
+                if flag == True:
+                    node = fqueue.pop(0)
+                else:
+                    node = fqueue.pop(-1)
+                last_node = node[0][-1]
+                food_l1 = node[1]
+                score = node[2]
+                if score > max_score:
+                    max_score = score
+                    max_path = node[0]
+                if len(node[0]) > depth:
+                    continue
+                if len(food_l1) == 0:
+                    depth = len(node[0])
+                    continue
+                # A_star
+                node_temp = last_node
+                food_l2 = sorted(food_l1, key=mahatan_node_temp)
+                food_near = food_l2.pop(0)
+                path_, food_l4, explored = PacMan_A_star_fog(last_node[0], last_node[1], food_near[0], food_near[1], food_l1.copy(), [])
+                path_.remove(last_node)
+                path = node[0] + path_
+                score_ = (n - len(food_l4)) * 20 - len(path)
+                fqueue.append((path, food_l4, score_))
+                node_temp = food_near
                 explored = []
-                food_list = []
-                for i in range(len(graph)):
-                    graph_temp.append([])
-                    for j in range(len(graph[0])):
-                        graph_temp[i].append([0])
+                while len(food_l2) > 0:
+                    food_near = food_l2.pop(0)
+                    path_1, food_l4, explored = PacMan_A_star_fog(last_node[0], last_node[1], food_near[0], food_near[1], food_l1.copy(), path_)
+                    if len(path_1) == 0:
+                        break
+                    path_1.remove(last_node)
+                    path = node[0] + path_1
+                    score_ = (n - len(food_l4)) * 20 - len(path)
+                    fqueue.append((path, food_l4, score_))
+                    path_ = path_ + path_1
+                    node_temp = []
+            path_temp = max_path
+            if len(path_temp) == 0:
+                return 0, 0, False
+            temp = path_temp.pop(1)
+            return temp[0], temp[1], False
+        if len(ghost_list) != 0:
+            print('............')
+            print(len(food_list))
+            move_list = []
+            buffer = [(pac[0] + 1, pac[1]), (pac[0] - 1, pac[1]), (pac[0], pac[1] + 1), (pac[0], pac[1] - 1),(pac[0], pac[1])]
+            for i in range(len(buffer)):
+                if canMove(buffer[i][0], buffer[i][1]) == True:
+                    move_list.append([buffer[i], f_function(buffer[i][0], buffer[i][1], food_list, ghost_list)])
+            move_list = sorted(move_list, key = operator.itemgetter(1))
+            move = move_list.pop(0)
+            flag = False
+            if len(food_list) == 0:
                 fqueue = [(pac[0], pac[1])]
                 all_explored = []
                 while len(fqueue) > 0:
                     fqueue = sorted(fqueue, key=return_index_1)
                     node = fqueue.pop(0)
                     x, y = node[0], node[1]
-                    graph_temp[y][x] = graph[y][x]
-                    if graph_temp[y][x][0] == 2 and node not in all_explored:
-                        food_list.append(node)
-                    all_explored.append(node)
+                    graph_temp[y][x] = graph_fog[y][x]
+                    if graph_fog[y][x][0] == -1:
+                        flag = True
+                        break
                     buffer = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
                     while len(buffer) > 0:
                         temp = buffer.pop(random.randint(0, len(buffer) - 1))
-                        if canMove(temp[0], temp[1]) and len(graph[temp[1]][temp[0]]) == 1 and temp not in all_explored:
+                        if canMove_fog(temp[0], temp[1]) and temp not in all_explored and len(graph_fog[temp[1]][temp[0]]) == 1:
                             fqueue.append(temp)
-                n = len(food_list)
-                # search
-                max_path = []
-                max_score = 0
-                fqueue = [([(pac[0], pac[1])], food_list, 0)]
-                flag = True
-                number = 0
-                depth = 99999
-                while len(fqueue) > 0:
-                    fqueue = sorted(fqueue, key=return_index_2)
-                    if flag == True:
-                        node = fqueue.pop(0)
-                    else:
-                        node = fqueue.pop(-1)
-                    last_node = node[0][-1]
-                    food_l1 = node[1]
-                    score = node[2]
-                    if score > max_score:
-                        max_score = score
-                        max_path = node[0]
-                    if len(node[0]) > depth:
-                        continue
-                    if len(food_l1) == 0:
-                        depth = len(node[0])
-                        continue
-                    # A_star
-                    node_temp = last_node
-                    food_l2 = sorted(food_l1, key=mahatan_node_temp)
-                    food_near = food_l2.pop(0)
-                    path_, food_l4, explored = PacMan_A_star(last_node[0], last_node[1], food_near[0], food_near[1],
-                                                             food_l1.copy(), [])
-                    path_.remove(last_node)
-                    path = node[0] + path_
-                    score_ = (n - len(food_l4)) * 20 - len(path)
-                    fqueue.append((path, food_l4, score_))
-                    node_temp = food_near
-                    explored = []
-                    while len(food_l2) > 0:
-                        food_near = food_l2.pop(0)
-                        path_1, food_l4, explored = PacMan_A_star(last_node[0], last_node[1], food_near[0],
-                                                                  food_near[1], food_l1.copy(), path_)
-                        if len(path_1) == 0:
-                            break
-                        path_1.remove(last_node)
-                        path = node[0] + path_1
-                        score_ = (n - len(food_l4)) * 20 - len(path)
-                        fqueue.append((path, food_l4, score_))
-                        path_ = path_ + path_1
-                        node_temp = []
-                path_temp = max_path
-                if len(path_temp) == 0:
-                    return 0, 0, True
-                temp = path_temp.pop(0)
-                return temp[0], temp[1], False
-            else:
-                if len(path_temp) == 0:
-                    return 0, 0, True
-                temp = path_temp.pop(0)
-                time.sleep(0.2)
-                return temp[0], temp[1], False
-=======
-        
->>>>>>> eb1f3f98a2ec24b51d7bf7ab7517d226d77e67be
+                            all_explored.append(node)
+                if flag == False:
+                    return pac[0],pac[1],True
+            return move[0][0], move[0][1], False
+            
             
         
                 
